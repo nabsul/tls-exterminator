@@ -5,36 +5,51 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 )
 
+var targetUrl string
+
 func main() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		resp, err := httpsRequest(r)
-		if err != nil {
-			log.Println("Error creating new request:", err)
-			return
-		}
 
-		copyHeaders(resp.Header, w.Header())
-		w.WriteHeader(resp.StatusCode)
+	port, err := strconv.Atoi(os.Args[1])
+	if err != nil {
+		log.Fatalf("Invalid port number: %v", err)
+	}
 
-		// Copy the body
-		defer resp.Body.Close()
-		_, err = io.Copy(w, resp.Body)
-		if err != nil {
-			log.Println("Error copying response body:", err)
-		}
-	})
+	targetUrl = "https://" + os.Args[2]
 
-	fmt.Println("Starting server at port 5000")
-	if err := http.ListenAndServe(":5000", nil); err != nil {
+	http.HandleFunc("/", requestHandler)
+
+	portStr := strconv.Itoa(port)
+	fmt.Println("Starting server at port " + portStr + " and forwarding to " + targetUrl)
+	if err := http.ListenAndServe(":"+portStr, nil); err != nil {
 		log.Println("Error creating new request:", err)
+	}
+}
+
+func requestHandler(w http.ResponseWriter, r *http.Request) {
+	resp, err := httpsRequest(r)
+	if err != nil {
+		log.Println("Error creating new request:", err)
+		return
+	}
+
+	copyHeaders(resp.Header, w.Header())
+	w.WriteHeader(resp.StatusCode)
+
+	// Copy the body
+	defer resp.Body.Close()
+	_, err = io.Copy(w, resp.Body)
+	if err != nil {
+		log.Println("Error copying response body:", err)
 	}
 }
 
 func httpsRequest(r *http.Request) (*http.Response, error) {
 	// Create a new request using http
-	r2, err := http.NewRequest("GET", "https://nabeel.dev", nil)
+	r2, err := http.NewRequest("GET", targetUrl, nil)
 	if err != nil {
 		return nil, err
 	}
