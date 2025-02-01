@@ -1,5 +1,7 @@
 # TLS Exterminator
 
+Credits: Special thanks to @gerhard for working through the design and testing of all of this!
+
 A small service that exposes an HTTP endpoint and reverse proxies all requests to a domain over HTTPS.
 The goal is to use this program as a sidecar to work around a limitation where the client only does HTTP.
 
