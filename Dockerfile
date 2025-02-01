@@ -1,11 +1,11 @@
 FROM golang:1.23 AS build
 
+FROM alpine AS certs
+RUN apk update && apk add ca-certificates
+
 WORKDIR /app
 COPY . .
 RUN go build -o tls-exterminator . 
-
-FROM alpine AS certs
-RUN apk update && apk add ca-certificates
 
 FROM busybox
 COPY --from=certs /etc/ssl/certs /etc/ssl/certs
