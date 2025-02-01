@@ -1,36 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"os"
-	"strconv"
 )
 
-var targetUrl string
-
-func main() {
-
-	port, err := strconv.Atoi(os.Args[1])
-	if err != nil {
-		log.Fatalf("Invalid port number: %v", err)
-	}
-
-	targetUrl = "https://" + os.Args[2]
-
-	http.HandleFunc("/", requestHandler)
-
-	portStr := strconv.Itoa(port)
-	fmt.Println("Starting server at port " + portStr + " and forwarding to " + targetUrl)
-	if err := http.ListenAndServe(":"+portStr, nil); err != nil {
-		log.Println("Error creating new request:", err)
-	}
-}
-
-func requestHandler(w http.ResponseWriter, r *http.Request) {
-	resp, err := httpsRequest(r)
+func requestHandler(targetUrl string, w http.ResponseWriter, r *http.Request) {
+	resp, err := httpsRequest(targetUrl, r)
 	if err != nil {
 		log.Println("Error creating new request:", err)
 		return
@@ -47,9 +24,10 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func httpsRequest(r *http.Request) (*http.Response, error) {
+func httpsRequest(targetUrl string, r *http.Request) (*http.Response, error) {
 	// Create a new request using http
 	r2, err := http.NewRequest("GET", targetUrl, nil)
+
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +37,11 @@ func httpsRequest(r *http.Request) (*http.Response, error) {
 	r2.Body = r.Body
 
 	// Create a new client
-	client := &http.Client{}
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
 
 	// Perform the request
 	resp, err := client.Do(r2)
