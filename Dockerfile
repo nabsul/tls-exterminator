@@ -1,8 +1,7 @@
-FROM golang:1.23 AS build
-
 FROM alpine AS certs
 RUN apk update && apk add ca-certificates
 
+FROM golang:1.23 AS build
 WORKDIR /app
 COPY . .
 RUN go build -o tls-exterminator . 
