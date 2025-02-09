@@ -35,3 +35,8 @@ func (m *TlsExterminator) GrepDir(ctx context.Context, directoryArg *dagger.Dire
 		WithExec([]string{"grep", "-R", pattern, "."}).
 		Stdout(ctx)
 }
+
+// Builds TLS Exterminator
+func (m *TlsExterminator) BuildDocker(ctx context.Context, src *dagger.Directory) *dagger.Container {
+	return src.DockerBuild()
+}
