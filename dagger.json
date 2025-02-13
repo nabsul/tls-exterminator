@@ -1,0 +1,7 @@
+{
+  "name": "tls-exterminator",
+  "engineVersion": "v0.15.4",
+  "sdk": {
+    "source": "github.com/quartz-technology/daggerverse/docker_sdk"
+  }
+}
