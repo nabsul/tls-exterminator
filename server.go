@@ -33,17 +33,17 @@ func requestHandler(targetUrl string, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func httpsRequest(targetUrl string, r *http.Request) (*http.Response, error) {
+func httpsRequest(targetUrl string, httpRequest *http.Request) (*http.Response, error) {
 	// Create a new request using http
-	r2, err := http.NewRequest("GET", targetUrl, nil)
+	httpsRequest, err := http.NewRequest(httpRequest.Method, targetUrl, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	r2.URL.Path = r.URL.Path
-	copyHeaders(r.Header, r2.Header)
-	r2.Body = r.Body
+	httpsRequest.URL.Path = httpRequest.URL.Path
+	copyHeaders(httpRequest.Header, httpsRequest.Header)
+	httpsRequest.Body = httpRequest.Body
 
 	// Create a new client
 	client := &http.Client{
@@ -53,7 +53,7 @@ func httpsRequest(targetUrl string, r *http.Request) (*http.Response, error) {
 	}
 
 	// Perform the request
-	resp, err := client.Do(r2)
+	resp, err := client.Do(httpsRequest)
 	if err != nil {
 		return nil, err
 	}
