@@ -53,12 +53,7 @@ func httpsRequest(targetUrl string, httpRequest *http.Request) (*http.Response, 
 	}
 
 	// Perform the request
-	resp, err := client.Do(httpsRequest)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
+	return client.Do(httpsRequest)
 }
 
 func copyHeaders(from http.Header, to http.Header) {
