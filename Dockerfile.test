@@ -7,8 +7,9 @@ COPY . .
 RUN go build -o tls-exterminator . 
 
 FROM busybox
-COPY --from=certs /etc/ssl/certs /etc/ssl/certs
 WORKDIR /app
+COPY --from=certs /etc/ssl/certs /etc/ssl/certs
 COPY --from=build /app/tls-exterminator /app/tls-exterminator
+COPY ./test-server/server.crt /etc/ssl/certs/server.crt
 
-ENTRYPOINT ["/app/tls-exterminator"]
+CMD ["/app/tls-exterminator"]

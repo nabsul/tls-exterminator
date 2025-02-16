@@ -1,0 +1,22 @@
+services:
+  host1:
+    build:
+      context: .
+      dockerfile: Dockerfile.test-server
+    environment:
+      - HOST=host1
+  host2:
+    build:
+      context: .
+      dockerfile: Dockerfile.test-server
+    environment:
+      - HOST=host2
+  tls:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+    environment:
+      - "CONFIG=5000:host1,5001:host2"

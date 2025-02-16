@@ -1,0 +1,18 @@
+[req]
+distinguished_name = req_distinguished_name
+x509_extensions = v3_req
+prompt = no
+[req_distinguished_name]
+C = US
+ST = WA
+L = Seattle
+O = nabsul
+OU = nabsul
+CN = host1
+[v3_req]
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+[alt_names]
+DNS.1 = host1
+DNS.2 = host2

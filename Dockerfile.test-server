@@ -1,0 +1,12 @@
+FROM golang:1.23 AS build
+WORKDIR /app
+COPY . .
+RUN go build -o /test-server ./test-server
+
+FROM busybox
+WORKDIR /app
+COPY --from=build /test-server /app/test-server
+COPY ./test-server/server.key /app/server.key
+COPY ./test-server/server.crt /app/server.crt
+
+ENTRYPOINT [ "/app/test-server" ]
