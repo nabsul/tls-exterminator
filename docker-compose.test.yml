@@ -11,12 +11,19 @@ services:
       dockerfile: Dockerfile.test-server
     environment:
       - HOST=host2
-  tls:
+  tls1:
     build:
       context: .
       dockerfile: Dockerfile.test
     ports:
       - "5000:5000"
+    environment:
+      - "CONFIG=5000:host1"
+  tls2:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    ports:
       - "5001:5001"
     environment:
-      - "CONFIG=5000:host1,5001:host2"
+      - "CONFIG=5001:host2"

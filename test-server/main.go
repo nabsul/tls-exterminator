@@ -18,20 +18,22 @@ func main() {
 	cert := "server.crt"
 	key := "server.key"
 
-	http.HandleFunc("/", handleRequest)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { handleRequest(host, w, r) })
 	fmt.Printf("Serving host [%s] at port 443\n", host)
 	log.Fatal(http.ListenAndServeTLS(":443", cert, key, nil))
 }
 
 type Response struct {
+	Server  string
 	Host    string
 	Method  string
-	Url     string
+	Path    string
+	Query   string
 	Headers map[string][]string
 	Body    string
 }
 
-func handleRequest(w http.ResponseWriter, r *http.Request) {
+func handleRequest(host string, w http.ResponseWriter, r *http.Request) {
 
 	res, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -40,9 +42,11 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := Response{
+		Server:  host,
 		Host:    r.Host,
 		Method:  r.Method,
-		Url:     r.URL.String(),
+		Path:    r.URL.Path,
+		Query:   r.URL.RawQuery,
 		Headers: r.Header,
 		Body:    string(res),
 	}
