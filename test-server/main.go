@@ -9,18 +9,24 @@ import (
 	"os"
 )
 
+const (
+	cert = "server.crt"
+	key  = "server.key"
+)
+
 func main() {
 	host, ok := os.LookupEnv("HOST")
 	if !ok {
 		log.Fatal("HOST environment variable is required")
 	}
 
-	cert := "server.crt"
-	key := "server.key"
+	log.Fatal(Run(host, cert, key))
+}
 
+func Run(host, cert, key string) error {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { handleRequest(host, w, r) })
 	fmt.Printf("Serving host [%s] at port 443\n", host)
-	log.Fatal(http.ListenAndServeTLS(":443", cert, key, nil))
+	return http.ListenAndServeTLS(":443", cert, key, nil)
 }
 
 type Response struct {

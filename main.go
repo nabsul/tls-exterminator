@@ -29,12 +29,12 @@ func main() {
 func run(config string) error {
 	parts := strings.Split(config, ":")
 	if len(parts) != 2 {
-		log.Fatalf("invalid config: %s", config)
+		return fmt.Errorf("invalid config: %s", config)
 	}
 
 	port, err := strconv.ParseUint(parts[0], 10, 32)
 	if err != nil {
-		log.Fatalf("invalid port %s in config %s", parts[0], config)
+		return fmt.Errorf("invalid port %s in config %s", parts[0], config)
 	}
 
 	host := parts[1]

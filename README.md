@@ -35,5 +35,8 @@ go build cmd
 ## Usage
 
 ```sh
-./tls-exterminator [listen-port] [target-domain]
+./tls-exterminator [listen-port]:[target-domain]
 ```
+
+## Test Locally
+

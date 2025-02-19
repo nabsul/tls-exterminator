@@ -11,6 +11,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestInvalidConfig(t *testing.T) {
+	err := run("")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid config")
+}
+
 func TestAll(t *testing.T) {
 	for p := range portToHost {
 		testReq(t, p, "GET", "/", "", nil, "")
