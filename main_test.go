@@ -17,35 +17,30 @@ func TestInvalidConfig(t *testing.T) {
 	require.Contains(t, err.Error(), "invalid config")
 }
 
-func TestAll(t *testing.T) {
-	for p := range portToHost {
-		testReq(t, p, "GET", "/", "", nil, "")
-		testReq(t, p, "GET", "/abc", "", nil, "")
-		testReq(t, p, "GET", "/abc", "q=1,s=2", nil, "")
-		testReq(t, p, "POST", "/", "", nil, "121212")
-	}
-}
-
-func testReq(t *testing.T, port int, method, path, query string, headers map[string][]string, body string) {
-	r := requestData{
-		port:    port,
-		method:  method,
-		path:    path,
-		query:   query,
-		headers: headers,
-		body:    body,
-	}
-
-	testRequest(t, r)
-}
-
-type requestData struct {
-	port    int
+type testRequestData struct {
+	name    string
 	method  string
 	path    string
 	query   string
 	headers map[string][]string
 	body    string
+}
+
+var testRequests = []testRequestData{
+	{"Basic GET", "GET", "/", "", nil, ""},
+	{"GET with path", "GET", "/abc", "", nil, ""},
+	{"GET with query params", "GET", "/abc", "q=1,s=2", nil, ""},
+	{"POST", "POST", "/", "", nil, "121212"},
+}
+
+func TestAll(t *testing.T) {
+	for p, h := range portToHost {
+		for _, r := range testRequests {
+			t.Run(fmt.Sprintf("PORT %d %s", p, r.name), func(t *testing.T) {
+				testRequest(t, p, h, r)
+			})
+		}
+	}
 }
 
 type Response struct {
@@ -63,8 +58,8 @@ var portToHost = map[int]string{
 	5001: "host2",
 }
 
-func testRequest(t *testing.T, r requestData) {
-	url := fmt.Sprintf("http://localhost:%d", r.port)
+func testRequest(t *testing.T, port int, host string, r testRequestData) {
+	url := fmt.Sprintf("http://localhost:%d", port)
 	req, err := http.NewRequest(r.method, url, io.NopCloser(strings.NewReader(r.body)))
 	if err != nil {
 		t.Errorf("Error creating request: %v", err)
@@ -95,8 +90,8 @@ func testRequest(t *testing.T, r requestData) {
 		}
 	}
 
-	require.Equal(t, portToHost[r.port], result.Server)
-	require.Equal(t, portToHost[r.port], result.Host)
+	require.Equal(t, host, result.Server)
+	require.Equal(t, host, result.Host)
 	require.Equal(t, r.method, result.Method)
 	require.Equal(t, strings.Trim(r.path, "/"), strings.Trim(result.Path, "/"))
 	require.Equal(t, headers, result.Headers)

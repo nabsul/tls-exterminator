@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -38,51 +39,18 @@ func run(config string) error {
 	}
 
 	host := parts[1]
-	targetUrl := fmt.Sprintf("https://%s", host)
-
-	log.Printf("Starting server at port %d and forwarding to %s", port, targetUrl)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { requestHandler(targetUrl, w, r) })
-	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
-}
-
-func requestHandler(targetUrl string, w http.ResponseWriter, r *http.Request) {
-
-	httpsRequest, err := http.NewRequest(r.Method, targetUrl, nil)
-
+	targetUrl, err := url.Parse(fmt.Sprintf("https://%s", host))
 	if err != nil {
-		log.Println("Error creating new request:", err)
-		return
+		return fmt.Errorf("invalid host %s in config %s", host, config)
 	}
 
-	httpsRequest.URL.Path = r.URL.Path
-	httpsRequest.URL.RawQuery = r.URL.RawQuery
-	httpsRequest.Header = r.Header
-	httpsRequest.Body = r.Body
-
-	// Create a new client
-	client := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
+	proxy := httputil.ReverseProxy{
+		Rewrite: func(req *httputil.ProxyRequest) {
+			req.SetURL(targetUrl)
 		},
 	}
+	http.HandleFunc("/", proxy.ServeHTTP)
 
-	// Perform the request
-	resp, err := client.Do(httpsRequest)
-	if err != nil {
-		log.Println("Error creating new request:", err)
-		return
-	}
-
-	// Set the headers
-	for k, v := range resp.Header {
-		w.Header()[k] = v
-	}
-	w.WriteHeader(resp.StatusCode)
-
-	// Copy the body
-	defer resp.Body.Close()
-	_, err = io.Copy(w, resp.Body)
-	if err != nil {
-		log.Println("Error copying response body:", err)
-	}
+	log.Printf("Starting server at port %d and forwarding to %s", port, targetUrl)
+	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
