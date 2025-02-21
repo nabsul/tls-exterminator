@@ -28,7 +28,7 @@ type TlsExterminator struct{}
 
 var ignore = dagger.ContainerWithDirectoryOpts{Exclude: []string{"_archive", ".git"}}
 
-// test copying source
+// test copying source why is it so slow?
 func (m *TlsExterminator) CopySource(ctx context.Context, src *dagger.Directory) (string, error) {
 	return dag.Container().
 		From("alpine:latest").
