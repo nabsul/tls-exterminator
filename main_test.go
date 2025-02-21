@@ -33,11 +33,11 @@ var testRequests = []testRequestData{
 	{"POST", "POST", "/", "", nil, "121212"},
 }
 
-func TestAll(t *testing.T) {
-	for p, h := range portToHost {
+func TestAll(test *testing.T) {
+	for t, h := range portToHost {
 		for _, r := range testRequests {
-			t.Run(fmt.Sprintf("PORT %d %s", p, r.name), func(t *testing.T) {
-				testRequest(t, p, h, r)
+			test.Run(fmt.Sprintf("PORT %s %s", t, r.name), func(test *testing.T) {
+				testRequest(test, t, h, r)
 			})
 		}
 	}
@@ -53,13 +53,13 @@ type Response struct {
 	Body    string
 }
 
-var portToHost = map[int]string{
-	5000: "host1",
-	5001: "host2",
+var portToHost = map[string]string{
+	"tls1:5000": "host1",
+	"tls2:5001": "host2",
 }
 
-func testRequest(t *testing.T, port int, host string, r testRequestData) {
-	url := fmt.Sprintf("http://localhost:%d", port)
+func testRequest(t *testing.T, target string, host string, r testRequestData) {
+	url := fmt.Sprintf("http://%s", target)
 	req, err := http.NewRequest(r.method, url, io.NopCloser(strings.NewReader(r.body)))
 	if err != nil {
 		t.Errorf("Error creating request: %v", err)
