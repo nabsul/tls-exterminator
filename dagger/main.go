@@ -26,18 +26,15 @@ const (
 
 type TlsExterminator struct{}
 
-// Returns a container that echoes whatever string argument is provided
-func (m *TlsExterminator) ContainerEcho(stringArg string) *dagger.Container {
-	return dag.Container().From("alpine:latest").WithExec([]string{"echo", stringArg})
-}
+var ignore = dagger.ContainerWithDirectoryOpts{Exclude: []string{"_archive", ".git"}}
 
-// Returns lines that match a pattern in the files of the provided Directory
-func (m *TlsExterminator) GrepDir(ctx context.Context, directoryArg *dagger.Directory, pattern string) (string, error) {
+// test copying source
+func (m *TlsExterminator) CopySource(ctx context.Context, src *dagger.Directory) (string, error) {
 	return dag.Container().
 		From("alpine:latest").
-		WithMountedDirectory("/mnt", directoryArg).
-		WithWorkdir("/mnt").
-		WithExec([]string{"grep", "-R", pattern, "."}).
+		WithDirectory("/src", src, ignore).
+		WithExec([]string{"ls", "-l", "/src"}).
+		WithExec([]string{"du", "-sh", "/src"}).
 		Stdout(ctx)
 }
 
@@ -45,27 +42,27 @@ func (m *TlsExterminator) GrepDir(ctx context.Context, directoryArg *dagger.Dire
 func (m *TlsExterminator) Build(ctx context.Context, src *dagger.Directory) *dagger.Container {
 	build := dag.Container().
 		From(goBuildTag).
-		WithMountedDirectory("/src", src).
+		WithDirectory("/src", src, ignore).
 		WithExec([]string{"ls"}).
 		WithWorkdir("/src").
-		WithExec([]string{"go", "build", "-o", "/tls-extermintator", "."})
+		WithExec([]string{"go", "build", "-o", "/tls-exterminator", "."})
 
-	binary := build.File("/tls-extermintator")
+	binary := build.File("/tls-exterminator")
 	certs := build.Directory("/etc/ssl/certs")
 
 	return dag.Container().
 		From(goRunTag).
-		WithDirectory("/etc/ssl/certs", certs, dagger.ContainerWithDirectoryOpts{Exclude: []string{"_archive/", ".git/"}}).
-		WithFile("/app/tls-extermintator", binary).
+		WithDirectory("/etc/ssl/certs", certs).
+		WithFile("/app/tls-exterminator", binary).
 		WithWorkdir("/app").
-		WithEntrypoint([]string{"/app/tls-extermintator"})
+		WithEntrypoint([]string{"/app/tls-exterminator"})
 }
 
 // Builds the test server binary
 func (m *TlsExterminator) BuildTestServer(ctx context.Context, src *dagger.Directory) *dagger.Container {
 	build := dag.Container().
 		From(goBuildTag).
-		WithMountedDirectory("/src", src).
+		WithDirectory("/src", src, ignore).
 		WithExec([]string{"ls"}).
 		WithWorkdir("/src").
 		WithExec([]string{"go", "build", "-o", "/test-server", "./test-server"})
@@ -76,10 +73,10 @@ func (m *TlsExterminator) BuildTestServer(ctx context.Context, src *dagger.Direc
 
 	return dag.Container().
 		From(goRunTag).
+		WithWorkdir("/app").
 		WithFile("/app/test-server", binary).
 		WithFile("/app/server.key", key).
 		WithFile("/app/server.crt", cert).
-		WithWorkdir("/app").
 		WithEntrypoint([]string{"/app/test-server"})
 
 }
@@ -113,20 +110,20 @@ func (m *TlsExterminator) Test(ctx context.Context, src *dagger.Directory) (stri
 		WithServiceBinding("host1", srv1).
 		WithExposedPort(5000).
 		WithEnvVariable("CONFIG", "5000:host1").
-		AsService(dagger.ContainerAsServiceOpts{
-			Args: []string{"/app/tls-exterminator"},
-		})
+		AsService(dagger.ContainerAsServiceOpts{UseEntrypoint: true})
+
 	tls2 := tls.
 		WithServiceBinding("host2", srv2).
 		WithExposedPort(5001).
 		WithEnvVariable("CONFIG", "5001:host2").
-		AsService(dagger.ContainerAsServiceOpts{
-			Args: []string{"/app/tls-exterminator"},
-		})
+		AsService(dagger.ContainerAsServiceOpts{UseEntrypoint: true})
 
-	return m.Build(ctx, src).
+	return dag.Container().
+		From(goBuildTag).
+		WithWorkdir("/src").
+		WithDirectory("/src", src, ignore).
 		WithServiceBinding("tls1", tls1).
-		WithServiceBinding("tls1", tls2).
-		WithExec([]string{"go", "test", "./..."}).
+		WithServiceBinding("tls2", tls2).
+		WithExec([]string{"go", "test", "-v", "."}).
 		Stdout(ctx)
 }
