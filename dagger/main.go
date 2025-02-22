@@ -1,17 +1,3 @@
-// A generated module for TlsExterminator functions
-//
-// This module has been generated via dagger init and serves as a reference to
-// basic module structure as you get started with Dagger.
-//
-// Two functions have been pre-created. You can modify, delete, or add to them,
-// as needed. They demonstrate usage of arguments and return types using simple
-// echo and grep commands. The functions can be called from the dagger CLI or
-// from one of the SDKs.
-//
-// The first line in this comment block is a short description line and the
-// rest is a long description with more detail on the module's purpose or usage,
-// if appropriate. All modules should have a short description.
-
 package main
 
 import (
@@ -24,19 +10,18 @@ const (
 	goRunTag   = "busybox:latest"
 )
 
-var ignore = dagger.ContainerWithDirectoryOpts{Exclude: []string{"_archive", ".git"}}
-
-type TlsExterminator struct{
-	src *dagger.Directory
+type TlsExterminator struct {
+	// +private
+	Src *dagger.Directory
 }
 
 func New(
-	// +optional
-	// +defaultPath="."
+	// +defaultPath="./"
+	// +ignore=["_archive"]
 	src *dagger.Directory,
 ) *TlsExterminator {
 	return &TlsExterminator{
-		src: src,
+		Src: src,
 	}
 }
 
@@ -44,7 +29,7 @@ func New(
 func (m *TlsExterminator) Build(ctx context.Context) *dagger.Container {
 	build := dag.Container().
 		From(goBuildTag).
-		WithDirectory("/src", m.src, ignore).
+		WithDirectory("/src", m.Src).
 		WithExec([]string{"ls"}).
 		WithWorkdir("/src").
 		WithExec([]string{"go", "build", "-o", "/tls-exterminator", "."})
@@ -64,14 +49,14 @@ func (m *TlsExterminator) Build(ctx context.Context) *dagger.Container {
 func (m *TlsExterminator) BuildTestServer(ctx context.Context) *dagger.Container {
 	build := dag.Container().
 		From(goBuildTag).
-		WithDirectory("/src", m.src, ignore).
+		WithDirectory("/src", m.Src).
 		WithExec([]string{"ls"}).
 		WithWorkdir("/src").
 		WithExec([]string{"go", "build", "-o", "/test-server", "./test-server"})
 
 	binary := build.File("/test-server")
-	key := m.src.File("test-server/server.key")
-	cert := m.src.File("test-server/server.crt")
+	key := m.Src.File("test-server/server.key")
+	cert := m.Src.File("test-server/server.crt")
 
 	return dag.Container().
 		From(goRunTag).
@@ -85,7 +70,7 @@ func (m *TlsExterminator) BuildTestServer(ctx context.Context) *dagger.Container
 
 // Builds the test TLS Exterminator binary
 func (m *TlsExterminator) BuildTestTlsExterminator(ctx context.Context) *dagger.Container {
-	cert := m.src.File("test-server/server.crt")
+	cert := m.Src.File("test-server/server.crt")
 	return m.Build(ctx).
 		WithFile("/etc/ssl/certs/server.crt", cert).
 		WithEntrypoint([]string{"/app/tls-exterminator"})
@@ -124,7 +109,7 @@ func (m *TlsExterminator) Test(ctx context.Context) (string, error) {
 	return dag.Container().
 		From(goBuildTag).
 		WithWorkdir("/src").
-		WithDirectory("/src", m.src, ignore).
+		WithDirectory("/src", m.Src).
 		WithServiceBinding("tls1", tls1).
 		WithServiceBinding("tls2", tls2).
 		WithExec([]string{"go", "test", "-v", "."}).
