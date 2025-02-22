@@ -1,17 +1,3 @@
-// A generated module for TlsExterminator functions
-//
-// This module has been generated via dagger init and serves as a reference to
-// basic module structure as you get started with Dagger.
-//
-// Two functions have been pre-created. You can modify, delete, or add to them,
-// as needed. They demonstrate usage of arguments and return types using simple
-// echo and grep commands. The functions can be called from the dagger CLI or
-// from one of the SDKs.
-//
-// The first line in this comment block is a short description line and the
-// rest is a long description with more detail on the module's purpose or usage,
-// if appropriate. All modules should have a short description.
-
 package main
 
 import (
@@ -24,25 +10,26 @@ const (
 	goRunTag   = "busybox:latest"
 )
 
-type TlsExterminator struct{}
+type TlsExterminator struct {
+	// +private
+	Src *dagger.Directory
+}
 
-var ignore = dagger.ContainerWithDirectoryOpts{Exclude: []string{"_archive", ".git"}}
-
-// test copying source why is it so slow?
-func (m *TlsExterminator) CopySource(ctx context.Context, src *dagger.Directory) (string, error) {
-	return dag.Container().
-		From("alpine:latest").
-		WithDirectory("/src", src, ignore).
-		WithExec([]string{"ls", "-l", "/src"}).
-		WithExec([]string{"du", "-sh", "/src"}).
-		Stdout(ctx)
+func New(
+	// +defaultPath="./"
+	// +ignore=["_archive"]
+	src *dagger.Directory,
+) *TlsExterminator {
+	return &TlsExterminator{
+		Src: src,
+	}
 }
 
 // Builds the main TLS Exterminator binary
-func (m *TlsExterminator) Build(ctx context.Context, src *dagger.Directory) *dagger.Container {
+func (m *TlsExterminator) Build(ctx context.Context) *dagger.Container {
 	build := dag.Container().
 		From(goBuildTag).
-		WithDirectory("/src", src, ignore).
+		WithDirectory("/src", m.Src).
 		WithExec([]string{"ls"}).
 		WithWorkdir("/src").
 		WithExec([]string{"go", "build", "-o", "/tls-exterminator", "."})
@@ -59,17 +46,17 @@ func (m *TlsExterminator) Build(ctx context.Context, src *dagger.Directory) *dag
 }
 
 // Builds the test server binary
-func (m *TlsExterminator) BuildTestServer(ctx context.Context, src *dagger.Directory) *dagger.Container {
+func (m *TlsExterminator) BuildTestServer(ctx context.Context) *dagger.Container {
 	build := dag.Container().
 		From(goBuildTag).
-		WithDirectory("/src", src, ignore).
+		WithDirectory("/src", m.Src).
 		WithExec([]string{"ls"}).
 		WithWorkdir("/src").
 		WithExec([]string{"go", "build", "-o", "/test-server", "./test-server"})
 
 	binary := build.File("/test-server")
-	key := src.File("test-server/server.key")
-	cert := src.File("test-server/server.crt")
+	key := m.Src.File("test-server/server.key")
+	cert := m.Src.File("test-server/server.crt")
 
 	return dag.Container().
 		From(goRunTag).
@@ -82,16 +69,17 @@ func (m *TlsExterminator) BuildTestServer(ctx context.Context, src *dagger.Direc
 }
 
 // Builds the test TLS Exterminator binary
-func (m *TlsExterminator) BuildTestTlsExterminator(ctx context.Context, src *dagger.Directory) *dagger.Container {
-	cert := src.File("test-server/server.crt")
-	return m.Build(ctx, src).
+func (m *TlsExterminator) BuildTestTlsExterminator(ctx context.Context) *dagger.Container {
+	cert := m.Src.File("test-server/server.crt")
+	return m.Build(ctx).
 		WithFile("/etc/ssl/certs/server.crt", cert).
 		WithEntrypoint([]string{"/app/tls-exterminator"})
 }
 
-func (m *TlsExterminator) Test(ctx context.Context, src *dagger.Directory) (string, error) {
-	testServer := m.BuildTestServer(ctx, src)
-	tls := m.BuildTestTlsExterminator(ctx, src)
+// Runs integration tests
+func (m *TlsExterminator) Test(ctx context.Context) (string, error) {
+	testServer := m.BuildTestServer(ctx)
+	tls := m.BuildTestTlsExterminator(ctx)
 
 	srv1 := testServer.
 		WithExposedPort(443).
@@ -121,7 +109,7 @@ func (m *TlsExterminator) Test(ctx context.Context, src *dagger.Directory) (stri
 	return dag.Container().
 		From(goBuildTag).
 		WithWorkdir("/src").
-		WithDirectory("/src", src, ignore).
+		WithDirectory("/src", m.Src).
 		WithServiceBinding("tls1", tls1).
 		WithServiceBinding("tls2", tls2).
 		WithExec([]string{"go", "test", "-v", "."}).
