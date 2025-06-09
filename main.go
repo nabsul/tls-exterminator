@@ -52,5 +52,5 @@ func run(config string) error {
 	http.HandleFunc("/", proxy.ServeHTTP)
 
 	log.Printf("Starting server at port %d and forwarding to %s", port, targetUrl)
-	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	return http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", port), nil)
 }
